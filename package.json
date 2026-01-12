@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "rsbuild dev",
     "build": "rsbuild build",
-    "preview": "rsbuild preview"
+    "preview": "rsbuild preview",
+    "deploy": "pnpm build && wrangler pages deploy dist --project-name=game-paradise"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
@@ -27,6 +28,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "wrangler": "^4.58.0"
   }
 }

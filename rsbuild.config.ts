@@ -9,6 +9,17 @@ export default defineConfig({
       '@': './src',
     },
   },
+  // 复制 public 目录中的文件到构建输出（包含 _redirects 等 Cloudflare 配置）
+  server: {
+    publicDir: {
+      name: 'public',
+    },
+  },
+  output: {
+    // Cloudflare Pages 静态资源目录
+    assetPrefix: '/',
+    copy: [{ from: 'public', to: '' }],
+  },
   tools: {
     rspack: {
       plugins: [
