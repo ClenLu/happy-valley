@@ -75,27 +75,41 @@ export class MusicSystem {
 
   /**
    * 开始播放背景音乐
+   * 
+   * 移动端注意事项：
+   * - 必须在用户交互（如点击）后调用
+   * - AudioContext 需要先 resume 才能播放
    */
-  start(): void {
+  async start(): Promise<void> {
     if (!this.audioContext || this.isPlaying) return
 
-    // 恢复 AudioContext（浏览器安全策略）
-    if (this.audioContext.state === 'suspended') {
-      this.audioContext.resume()
+    try {
+      // 恢复 AudioContext（移动端必须在用户交互后）
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume()
+      }
+
+      // 再次检查状态，确保已恢复
+      if (this.audioContext.state !== 'running') {
+        console.warn('AudioContext is not running, music may not play')
+        return
+      }
+
+      this.isPlaying = true
+      this.currentChordIndex = 0
+      this.currentBeat = 0
+
+      // 启动节拍器
+      const beatDuration = (60 / RHYTHM_CONFIG.bpm) * 1000
+      this.beatInterval = window.setInterval(() => {
+        this.onBeat()
+      }, beatDuration)
+
+      // 立即播放第一个和弦
+      this.playChordArpeggio()
+    } catch (error) {
+      console.error('Failed to start music:', error)
     }
-
-    this.isPlaying = true
-    this.currentChordIndex = 0
-    this.currentBeat = 0
-
-    // 启动节拍器
-    const beatDuration = (60 / RHYTHM_CONFIG.bpm) * 1000
-    this.beatInterval = window.setInterval(() => {
-      this.onBeat()
-    }, beatDuration)
-
-    // 立即播放第一个和弦
-    this.playChordArpeggio()
   }
 
   /**
@@ -152,6 +166,12 @@ export class MusicSystem {
    */
   playClickNote(): void {
     if (!this.audioContext || !this.masterGain) return
+    
+    // 确保 AudioContext 正在运行
+    if (this.audioContext.state !== 'running') {
+      this.audioContext.resume().catch(err => console.error('Failed to resume audio:', err))
+      return
+    }
 
     // 从当前和弦中随机选一个音符
     const chord = CHORD_PROGRESSION[this.currentChordIndex]
@@ -176,7 +196,7 @@ export class MusicSystem {
    * 播放正确音效（上升音阶）
    */
   playCorrectSound(): void {
-    if (!this.audioContext || !this.masterGain) return
+    if (!this.audioContext || !this.masterGain || this.audioContext.state !== 'running') return
 
     const now = this.audioContext.currentTime
     const chord = CHORD_PROGRESSION[this.currentChordIndex]
@@ -185,7 +205,7 @@ export class MusicSystem {
     chord.forEach((noteIndex, i) => {
       const freq = C_MAJOR_SCALE[noteIndex] * 1.5
       const startTime = now + i * 0.05
-      this.playTone(freq, startTime, 0.15, 0.2, this.masterGain)
+      this.playTone(freq, startTime, 0.15, 0.2, this.masterGain!)
     })
   }
 
@@ -193,7 +213,7 @@ export class MusicSystem {
    * 播放错误音效（下降音阶，但仍然和谐）
    */
   playWrongSound(): void {
-    if (!this.audioContext || !this.masterGain) return
+    if (!this.audioContext || !this.masterGain || this.audioContext.state !== 'running') return
 
     const now = this.audioContext.currentTime
     const chord = CHORD_PROGRESSION[this.currentChordIndex]
@@ -203,7 +223,7 @@ export class MusicSystem {
     reversedChord.forEach((noteIndex, i) => {
       const freq = C_MAJOR_SCALE[noteIndex] * 0.75
       const startTime = now + i * 0.08
-      this.playTone(freq, startTime, 0.12, 0.15, this.masterGain)
+      this.playTone(freq, startTime, 0.12, 0.15, this.masterGain!)
     })
   }
 
@@ -211,15 +231,16 @@ export class MusicSystem {
    * 播放星星收集音效（闪亮音符）
    */
   playStarCollectedSound(): void {
-    if (!this.audioContext || !this.masterGain) return
+    if (!this.audioContext || !this.masterGain || this.audioContext.state !== 'running') return
 
     const now = this.audioContext.currentTime
 
-    // 高音闪烁音符
+    // 高音闪烁音符 - 增大音量，让星星收集更有成就感
     const sparkleFreqs = [523.25, 659.25, 783.99] // C5, E5, G5
     sparkleFreqs.forEach((freq, i) => {
       const startTime = now + i * 0.04
-      this.playTone(freq, startTime, 0.3, 0.18, this.masterGain, 'sine')
+      // 音量从 0.18 提升到 0.35，让星星音效更突出
+      this.playTone(freq, startTime, 0.3, 0.95, this.masterGain!, 'sine')
     })
   }
 
@@ -227,7 +248,7 @@ export class MusicSystem {
    * 播放完成庆祝音效（胜利旋律）
    */
   playCelebrationSound(): void {
-    if (!this.audioContext || !this.masterGain) return
+    if (!this.audioContext || !this.masterGain || this.audioContext.state !== 'running') return
 
     const now = this.audioContext.currentTime
 

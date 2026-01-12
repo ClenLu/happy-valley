@@ -256,7 +256,8 @@ export class Renderer {
   private drawLetter(ctx: CanvasRenderingContext2D, x: number, y: number, letter: string, balloonWidth: number): void {
     const fontSize = balloonWidth * 0.5
 
-    ctx.font = `bold ${fontSize}px "Nunito", "Comic Sans MS", cursive`
+    // 使用系统默认字体，不使用特殊字体
+    ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
 

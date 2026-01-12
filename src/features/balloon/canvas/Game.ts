@@ -120,7 +120,7 @@ export class Game {
   /**
    * 开始游戏
    */
-  start(): void {
+  async start(): Promise<void> {
     this.setPhase('playing') // TODO: 后续添加 intro 动画
 
     // 重置状态
@@ -140,8 +140,8 @@ export class Game {
     // 初始化星座
     this.constellationSystem.initialize(this.targetLetters)
 
-    // 启动音乐系统
-    this.musicSystem.start()
+    // 启动音乐系统（移动端需要在用户交互后）
+    await this.musicSystem.start()
 
     // 开始第一轮
     this.startNewRound()

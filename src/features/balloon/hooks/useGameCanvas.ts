@@ -67,7 +67,7 @@ export function useGameCanvas(options: UseGameCanvasOptions) {
   }, [])
 
   // 开始游戏
-  const startGame = useCallback(() => {
+  const startGame = useCallback(async () => {
     const container = containerRef.current
     if (!container) return
 
@@ -83,7 +83,8 @@ export function useGameCanvas(options: UseGameCanvasOptions) {
       game.resize(rect.width, rect.height)
     }
 
-    game.start()
+    // 异步启动游戏（等待音频初始化）
+    await game.start()
   }, [initGame])
 
   // 停止游戏
