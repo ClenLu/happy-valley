@@ -1,0 +1,268 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* shadcn/ui 基础色彩变量 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@theme {
+  /* 儿童友好色彩系统 - 柔和高辨识、低刺激、同屏高饱和色≤2个 */
+
+  /* 背景色系 - 暖奶油调 */
+  --color-kids-bg-cream: #FFFBF5;
+  --color-kids-bg-warm: #FFF8F0;
+  --color-kids-bg-peach: #FFF5EB;
+  --color-kids-bg-sky: #F0F8FF;
+  --color-kids-bg-mint: #F5FFFA;
+
+  /* 卡片背景色 - 柔和淡彩 */
+  --color-kids-card-coral: #FFE4DE;
+  --color-kids-card-peach: #FFE8D6;
+  --color-kids-card-mint: #D8F3E6;
+  --color-kids-card-sky: #E3F2FD;
+  --color-kids-card-lavender: #EDE7F6;
+  --color-kids-card-lemon: #FFF9E6;
+
+  /* 主题色 - 柔和高辨识（降低饱和度30%）*/
+  --color-kids-coral: #FF9A8B;
+  --color-kids-peach: #FFB07C;
+  --color-kids-mint: #7DD3B0;
+  --color-kids-sky: #7EC8E8;
+  --color-kids-lavender: #B8A4D8;
+  --color-kids-lemon: #FFE066;
+  --color-kids-rose: #F5A4B8;
+
+  /* 深色版本（用于边框/强调）*/
+  --color-kids-coral-deep: #E07A6B;
+  --color-kids-peach-deep: #E09060;
+  --color-kids-mint-deep: #5AB090;
+  --color-kids-sky-deep: #5CA8C8;
+  --color-kids-lavender-deep: #9484B8;
+  --color-kids-lemon-deep: #E0C050;
+  --color-kids-rose-deep: #D58498;
+
+  /* 文字色 - 柔和深色 */
+  --color-kids-text: #4A4A4A;
+  --color-kids-text-secondary: #6B6B6B;
+  --color-kids-text-muted: #8B8B8B;
+
+  /* 反馈色 - 柔和版 */
+  --color-kids-success: #7DD3A0;
+  --color-kids-success-bg: #E8F8F0;
+  --color-kids-error: #F5A4A4;
+  --color-kids-error-bg: #FFF0F0;
+  --color-kids-highlight: #FFE066;
+  --color-kids-highlight-bg: #FFFBE6;
+}
+
+:root {
+  /* shadcn/ui 语义变量 - 儿童友好主题 */
+  --background: #FFFBF5;
+  --foreground: #4A4A4A;
+  --card: #FFFFFF;
+  --card-foreground: #4A4A4A;
+  --popover: #FFFFFF;
+  --popover-foreground: #4A4A4A;
+  --primary: #7EC8E8;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFE8D6;
+  --secondary-foreground: #4A4A4A;
+  --muted: #F5F5F5;
+  --muted-foreground: #8B8B8B;
+  --accent: #FFB07C;
+  --accent-foreground: #4A4A4A;
+  --destructive: #F5A4A4;
+  --destructive-foreground: #FFFFFF;
+  --border: #E8E8E8;
+  --input: #E8E8E8;
+  --ring: #7EC8E8;
+  --radius: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ========================================
+   迪士尼魔法动画系统
+   基于皮克斯 12 条动画原则
+   ======================================== */
+
+@layer utilities {
+  /* 云朵飘动 - 从右向左穿越整个屏幕 */
+  .animate-float-cloud {
+    animation: float-cloud 25s linear infinite;
+  }
+
+  /* 柔和的上下浮动 */
+  .animate-float-gentle {
+    animation: float-gentle 3s ease-in-out infinite;
+  }
+
+  /* 星星闪烁 - 有节奏的明暗变化 */
+  .animate-twinkle {
+    animation: twinkle 2s ease-in-out infinite;
+  }
+
+  /* 柔和弹跳 - 皮克斯风格的弹性感 */
+  .animate-bounce-soft {
+    animation: bounce-soft 2s ease-in-out infinite;
+  }
+
+  /* 摇摆 - 像花朵在微风中 */
+  .animate-sway {
+    animation: sway 3s ease-in-out infinite;
+    transform-origin: bottom center;
+  }
+
+  /* 小兔子蹦跳 */
+  .animate-hop {
+    animation: hop 1.5s ease-in-out infinite;
+  }
+
+  /* 左右摇晃 - 像在打招呼 */
+  .animate-wiggle {
+    animation: wiggle 1s ease-in-out infinite;
+  }
+
+  /* 向左弹跳 - 返回按钮用 */
+  .animate-bounce-left {
+    animation: bounce-left 0.6s ease-in-out infinite;
+  }
+}
+
+/* 关键帧定义 */
+@keyframes float-cloud {
+  0% {
+    transform: translateX(100vw);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.6;
+  }
+  95% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(-20vw);
+    opacity: 0;
+  }
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes bounce-soft {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-8px) scale(1.05);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.02);
+  }
+}
+
+@keyframes sway {
+  0%, 100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes hop {
+  0%, 100% {
+    transform: translateY(0) scaleY(1);
+  }
+  20% {
+    transform: translateY(0) scaleY(0.9) scaleX(1.1);
+  }
+  40% {
+    transform: translateY(-12px) scaleY(1.1) scaleX(0.95);
+  }
+  60% {
+    transform: translateY(-6px) scaleY(1.05);
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(-5deg);
+  }
+  25% {
+    transform: rotate(5deg);
+  }
+  50% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes bounce-left {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-3px);
+  }
+}
+
+/* 自定义缓动函数 - 弹性效果 */
+@layer utilities {
+  .ease-bounce-in {
+    transition-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+}
