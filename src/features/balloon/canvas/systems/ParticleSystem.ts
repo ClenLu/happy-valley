@@ -42,6 +42,34 @@ export class ParticleSystem {
   }
 
   /**
+   * 创建星星出现特效 - 星尘四散效果
+   */
+  createStarAppearEffect(x: number, y: number): void {
+    const particleCount = 12
+    const colors = ['#FFE066', '#FFF8DC', '#FFD700', '#FFFACD']
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 * i) / particleCount
+      const speed = 60 + Math.random() * 80
+
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 4 + Math.random() * 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 0.8,
+        maxLife: 0.8,
+        type: 'stardust',
+        rotation: 0,
+        rotationSpeed: 0,
+        alpha: 1,
+      })
+    }
+  }
+
+  /**
    * 创建升级庆祝效果 - 烟花式全屏庆祝
    */
   createLevelUpCelebration(centerX: number, centerY: number): void {

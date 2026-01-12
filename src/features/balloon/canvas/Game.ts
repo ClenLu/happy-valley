@@ -1,48 +1,59 @@
 import { Balloon } from './entities/Balloon'
 import { Renderer } from './Renderer'
 import { ParticleSystem } from './systems/ParticleSystem'
+import { ConstellationSystem } from './systems/ConstellationSystem'
 import { getRandomLetter, getRandomLetters } from '../utils/letters'
-import type { GameState, DifficultyConfig, Cloud } from '../types'
+import type { GameState, GamePhase, Cloud } from '../types'
 
-// 难度配置
-const DIFFICULTY: Record<1 | 2 | 3 | 4, DifficultyConfig> = {
-  1: { balloonCount: 2, baseSpeed: 0.5, spawnInterval: 2000 },
-  2: { balloonCount: 3, baseSpeed: 0.6, spawnInterval: 1800 },
-  3: { balloonCount: 4, baseSpeed: 0.7, spawnInterval: 1600 },
-  4: { balloonCount: 5, baseSpeed: 0.8, spawnInterval: 1400 },
+// 游戏配置
+const CONFIG = {
+  totalStars: 10,
+  balloonCountRange: [2, 4] as [number, number],
+  baseBalloonSpeed: 0.3,
+  flyToStarDuration: 2000,
+  dodgeDuration: 600,
+  dodgeDistance: 40,
 }
-
-// 升级所需的连续答对次数
-const LEVEL_UP_THRESHOLDS = [3, 5, 8]
 
 export interface GameCallbacks {
   onCorrect: (letter: string) => void
   onWrong: (tappedLetter: string, correctLetter: string) => void
   onMissed: (letter: string) => void
-  onLevelUp: (newLevel: number) => void
-  onNewRound: (targetLetter: string) => void
+  onStarCollected: (starId: number, totalCollected: number) => void
+  onNewRound: (targetLetter: string, round: number) => void
+  onPhaseChange: (phase: GamePhase) => void
+  onGameComplete: () => void
 }
 
 /**
- * 游戏主控制器
+ * 星空许愿 - 游戏主控制器
+ *
+ * 游戏流程:
+ * 1. idle -> intro (开场动画)
+ * 2. intro -> playing (开始游戏)
+ * 3. playing -> flying (点对气球，气球飞向星星)
+ * 4. flying -> playing (继续下一轮)
+ * 5. 最后一颗星星 -> celebrating -> ending
  */
 export class Game {
   private canvas: HTMLCanvasElement
   private renderer: Renderer
   private particleSystem: ParticleSystem
+  private constellationSystem: ConstellationSystem
   private callbacks: GameCallbacks
 
   private state: GameState = {
-    phase: 'ready',
+    phase: 'idle',
     targetLetter: '',
     balloons: [],
-    difficulty: 1,
-    consecutiveCorrect: 0,
-    score: 0,
+    currentRound: 0,
+    collectedStars: 0,
+    totalStars: CONFIG.totalStars,
   }
 
   private balloons: Balloon[] = []
   private clouds: Cloud[] = []
+  private targetLetters: string[] = [] // 10个目标字母
   private lastTime = 0
   private animationId: number | null = null
   private width = 0
@@ -53,10 +64,14 @@ export class Game {
   private spawnProtectionTime = 0
   private readonly SPAWN_PROTECTION_MS = 300
 
+  // 飞天中的气球
+  private flyingBalloon: Balloon | null = null
+
   constructor(canvas: HTMLCanvasElement, callbacks: GameCallbacks) {
     this.canvas = canvas
     this.renderer = new Renderer(canvas)
     this.particleSystem = new ParticleSystem()
+    this.constellationSystem = new ConstellationSystem()
     this.callbacks = callbacks
     this.dpr = window.devicePixelRatio || 1
   }
@@ -74,6 +89,7 @@ export class Game {
     this.canvas.style.height = `${height}px`
 
     this.renderer.resize(width, height)
+    this.constellationSystem.setCanvasSize(width, height)
 
     // 初始化云朵（只在第一次 resize 时）
     if (this.clouds.length === 0) {
@@ -90,10 +106,10 @@ export class Game {
     for (let i = 0; i < cloudCount; i++) {
       this.clouds.push({
         x: Math.random() * this.width,
-        y: this.height * (0.1 + Math.random() * 0.25), // 上方 10%-35% 区域
-        size: 0.6 + Math.random() * 0.6,  // 0.6-1.2
-        speed: 8 + Math.random() * 12,    // 8-20 px/s
-        opacity: 0.3 + Math.random() * 0.2, // 0.3-0.5
+        y: this.height * (0.1 + Math.random() * 0.25),
+        size: 0.6 + Math.random() * 0.6,
+        speed: 8 + Math.random() * 12,
+        opacity: 0.3 + Math.random() * 0.2,
       })
     }
   }
@@ -102,14 +118,28 @@ export class Game {
    * 开始游戏
    */
   start(): void {
-    this.state.phase = 'playing'
-    this.state.difficulty = 1
-    this.state.consecutiveCorrect = 0
-    this.state.score = 0
+    this.setPhase('playing') // TODO: 后续添加 intro 动画
+
+    // 重置状态
+    Balloon.resetIdCounter()
+    this.state.currentRound = 0
+    this.state.collectedStars = 0
     this.balloons = []
+    this.flyingBalloon = null
     this.particleSystem.clear()
 
+    // 生成 10 个随机目标字母
+    this.targetLetters = []
+    for (let i = 0; i < CONFIG.totalStars; i++) {
+      this.targetLetters.push(getRandomLetter())
+    }
+
+    // 初始化星座
+    this.constellationSystem.initialize(this.targetLetters)
+
+    // 开始第一轮
     this.startNewRound()
+
     this.lastTime = performance.now()
     this.gameLoop()
   }
@@ -122,24 +152,39 @@ export class Game {
       cancelAnimationFrame(this.animationId)
       this.animationId = null
     }
-    this.state.phase = 'ready'
+    this.setPhase('idle')
+  }
+
+  /**
+   * 设置游戏阶段
+   */
+  private setPhase(phase: GamePhase): void {
+    this.state.phase = phase
+    this.callbacks.onPhaseChange(phase)
   }
 
   /**
    * 开始新一轮
    */
   private startNewRound(): void {
-    // 清除旧气球
-    this.balloons = this.balloons.filter(b => b.data.state === 'popping')
+    if (this.state.currentRound >= CONFIG.totalStars) {
+      // 所有星星收集完成
+      this.triggerEnding()
+      return
+    }
 
-    // 选择新的目标字母
-    this.state.targetLetter = getRandomLetter()
+    // 清除已完成的气球
+    this.balloons = this.balloons.filter(b => b.isFlying())
 
-    // 获取难度配置
-    const config = DIFFICULTY[this.state.difficulty]
+    // 获取当前轮次的目标字母
+    this.state.targetLetter = this.targetLetters[this.state.currentRound]
+    this.state.currentRound++
 
-    // 生成气球字母（确保包含目标字母）
-    const letters = getRandomLetters(config.balloonCount, this.state.targetLetter)
+    // 生成气球
+    const balloonCount = CONFIG.balloonCountRange[0] +
+      Math.floor(Math.random() * (CONFIG.balloonCountRange[1] - CONFIG.balloonCountRange[0] + 1))
+
+    const letters = getRandomLetters(balloonCount, this.state.targetLetter)
 
     // 计算气球位置（均匀分布）
     const margin = 60
@@ -148,8 +193,8 @@ export class Game {
 
     for (let i = 0; i < letters.length; i++) {
       const x = margin + spacing * (i + 1)
-      const y = this.height + 50 + Math.random() * 30  // 从屏幕底部下方开始
-      const speed = config.baseSpeed + Math.random() * 0.2
+      const y = this.height + 50 + Math.random() * 30
+      const speed = CONFIG.baseBalloonSpeed + Math.random() * 0.15
 
       this.balloons.push(new Balloon(letters[i], x, y, speed))
     }
@@ -158,7 +203,26 @@ export class Game {
     this.spawnProtectionTime = this.SPAWN_PROTECTION_MS
 
     // 通知新一轮开始
-    this.callbacks.onNewRound(this.state.targetLetter)
+    this.callbacks.onNewRound(this.state.targetLetter, this.state.currentRound)
+  }
+
+  /**
+   * 触发结局
+   */
+  private triggerEnding(): void {
+    this.setPhase('celebrating')
+
+    // 开始绘制星座连线
+    this.constellationSystem.startDrawingConnections()
+
+    // 创建庆祝粒子
+    this.particleSystem.createLevelUpCelebration(this.width / 2, this.height / 3)
+
+    // 延迟后触发结束
+    setTimeout(() => {
+      this.setPhase('ending')
+      this.callbacks.onGameComplete()
+    }, 3000)
   }
 
   /**
@@ -179,10 +243,18 @@ export class Game {
    * 更新游戏状态
    */
   private update(deltaTime: number): void {
-    // 云朵始终更新（即使游戏未开始）
+    // 云朵始终更新
     this.updateClouds(deltaTime)
 
-    if (this.state.phase !== 'playing' && this.state.phase !== 'celebrating') return
+    // 星座系统始终更新（闪烁动画）
+    this.constellationSystem.update(deltaTime)
+
+    // 粒子系统始终更新
+    this.particleSystem.update(deltaTime)
+
+    if (this.state.phase !== 'playing' && this.state.phase !== 'flying' && this.state.phase !== 'celebrating') {
+      return
+    }
 
     // 更新防误触计时
     if (this.spawnProtectionTime > 0) {
@@ -194,8 +266,31 @@ export class Game {
       balloon.update(deltaTime)
     }
 
-    // 更新粒子
-    this.particleSystem.update(deltaTime)
+    // 检查飞天气球是否完成
+    if (this.state.phase === 'flying' && this.flyingBalloon) {
+      if (this.flyingBalloon.isDone()) {
+        // 点亮对应的星星
+        const starIndex = this.state.collectedStars
+        this.constellationSystem.lightStar(starIndex)
+        this.state.collectedStars++
+
+        // 创建星星出现粒子效果
+        const starPos = this.constellationSystem.getStarPosition(starIndex)
+        if (starPos) {
+          this.particleSystem.createStarAppearEffect(starPos.x, starPos.y)
+        }
+
+        this.callbacks.onStarCollected(starIndex + 1, this.state.collectedStars)
+
+        this.flyingBalloon = null
+        this.setPhase('playing')
+
+        // 开始下一轮
+        setTimeout(() => {
+          this.startNewRound()
+        }, 500)
+      }
+    }
 
     // 检测目标气球是否飘出屏幕
     if (this.state.phase === 'playing') {
@@ -204,7 +299,6 @@ export class Game {
       )
 
       if (targetBalloon && targetBalloon.isOffScreen()) {
-        // 目标飘走了
         this.callbacks.onMissed(this.state.targetLetter)
         this.startNewRound()
       }
@@ -221,13 +315,10 @@ export class Game {
     const dt = deltaTime / 1000
 
     for (const cloud of this.clouds) {
-      // 云朵从左向右缓慢移动
       cloud.x += cloud.speed * dt
 
-      // 超出右边界后从左边重新进入
       if (cloud.x > this.width + 60) {
         cloud.x = -60
-        // 随机调整 y 位置增加变化
         cloud.y = this.height * (0.1 + Math.random() * 0.25)
       }
     }
@@ -239,10 +330,24 @@ export class Game {
   private render(): void {
     this.renderer.clear()
     this.renderer.drawBackground()
-    this.renderer.drawClouds(this.clouds)  // 云朵在背景之上、气球之下
+    this.renderer.drawClouds(this.clouds)
+
+    // 绘制星座（星星和连线）
+    this.renderer.drawConstellationStars(this.constellationSystem.getStars())
+    this.renderer.drawConstellationConnections(this.constellationSystem.getConnectionsForRender())
+
+    // 绘制飞行轨迹
+    for (const balloon of this.balloons) {
+      if (balloon.isFlying()) {
+        this.renderer.drawFlyingTrail(balloon)
+      }
+    }
+
+    // 绘制气球
     this.renderer.drawBalloons(this.balloons)
+
+    // 绘制粒子
     this.renderer.drawParticles(this.particleSystem.getParticles())
-    // 目标字母提示已移至 React 组件
   }
 
   /**
@@ -250,7 +355,7 @@ export class Game {
    */
   handleTap(clientX: number, clientY: number): void {
     if (this.state.phase !== 'playing') return
-    if (this.spawnProtectionTime > 0) return  // 防误触保护期
+    if (this.spawnProtectionTime > 0) return
 
     // 转换为画布坐标
     const rect = this.canvas.getBoundingClientRect()
@@ -277,32 +382,24 @@ export class Game {
     const isCorrect = balloon.data.letter === this.state.targetLetter
 
     if (isCorrect) {
-      // 答对了 - 爆破气球
-      balloon.pop()
-      this.particleSystem.createExplosion(
-        balloon.getRenderX(),
-        balloon.data.y - Balloon.HEIGHT / 2,
-        balloon.data.color,
-        true
-      )
+      // 答对了 - 气球飞向星星
+      const starIndex = this.state.collectedStars
+      const starPos = this.constellationSystem.getStarPosition(starIndex)
 
-      this.state.consecutiveCorrect++
-      this.state.score++
+      if (starPos) {
+        balloon.flyToStar(starPos.x, starPos.y)
+        this.flyingBalloon = balloon
+        this.setPhase('flying')
 
-      // 停止其他气球的闪烁
-      this.balloons.forEach(b => b.stopFlash())
+        // 停止其他气球的闪烁
+        this.balloons.forEach(b => b.stopFlash())
 
-      // 检查是否升级
-      this.checkLevelUp()
-
-      this.callbacks.onCorrect(balloon.data.letter)
-
-      // 延迟后开始下一轮
-      setTimeout(() => {
-        this.startNewRound()
-      }, 800)
+        this.callbacks.onCorrect(balloon.data.letter)
+      }
     } else {
-      // 答错了 - 不爆破，只播放当前气球的字母
+      // 答错了 - 气球调皮躲避
+      balloon.dodge()
+
       this.callbacks.onWrong(balloon.data.letter, this.state.targetLetter)
 
       // 让正确的气球闪烁提示
@@ -311,30 +408,8 @@ export class Game {
       )
       if (correctBalloon) {
         correctBalloon.startFlash()
-        // 2秒后停止闪烁
         setTimeout(() => correctBalloon.stopFlash(), 2000)
       }
-    }
-  }
-
-  /**
-   * 检查是否升级
-   */
-  private checkLevelUp(): void {
-    const currentLevel = this.state.difficulty
-    if (currentLevel >= 4) return
-
-    const threshold = LEVEL_UP_THRESHOLDS[currentLevel - 1]
-    if (this.state.consecutiveCorrect >= threshold) {
-      this.state.difficulty = (currentLevel + 1) as 1 | 2 | 3 | 4
-
-      // 触发升级庆祝效果 - 烟花在屏幕中央
-      this.particleSystem.createLevelUpCelebration(
-        this.width / 2,
-        this.height / 2
-      )
-
-      this.callbacks.onLevelUp(this.state.difficulty)
     }
   }
 
@@ -343,5 +418,15 @@ export class Game {
    */
   getState(): GameState {
     return { ...this.state }
+  }
+
+  /**
+   * 获取星座进度
+   */
+  getConstellationProgress(): { collected: number; total: number } {
+    return {
+      collected: this.constellationSystem.getLitCount(),
+      total: this.constellationSystem.getTotalCount(),
+    }
   }
 }

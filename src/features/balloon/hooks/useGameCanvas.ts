@@ -1,12 +1,15 @@
 import { useRef, useEffect, useCallback } from 'react'
 import { Game, type GameCallbacks } from '../canvas/Game'
+import type { GamePhase } from '../types'
 
 interface UseGameCanvasOptions {
   onCorrect: (letter: string) => void
   onWrong: (tappedLetter: string, correctLetter: string) => void
   onMissed: (letter: string) => void
-  onLevelUp: (newLevel: number) => void
-  onNewRound: (targetLetter: string) => void
+  onStarCollected: (starId: number, totalCollected: number) => void
+  onNewRound: (targetLetter: string, round: number) => void
+  onPhaseChange: (phase: GamePhase) => void
+  onGameComplete: () => void
 }
 
 export function useGameCanvas(options: UseGameCanvasOptions) {
@@ -53,8 +56,10 @@ export function useGameCanvas(options: UseGameCanvasOptions) {
       onCorrect: (letter) => callbacksRef.current.onCorrect(letter),
       onWrong: (tapped, correct) => callbacksRef.current.onWrong(tapped, correct),
       onMissed: (letter) => callbacksRef.current.onMissed(letter),
-      onLevelUp: (level) => callbacksRef.current.onLevelUp(level),
-      onNewRound: (letter) => callbacksRef.current.onNewRound(letter),
+      onStarCollected: (starId, total) => callbacksRef.current.onStarCollected(starId, total),
+      onNewRound: (letter, round) => callbacksRef.current.onNewRound(letter, round),
+      onPhaseChange: (phase) => callbacksRef.current.onPhaseChange(phase),
+      onGameComplete: () => callbacksRef.current.onGameComplete(),
     }
 
     const game = new Game(canvas, callbacks)
@@ -107,11 +112,17 @@ export function useGameCanvas(options: UseGameCanvasOptions) {
     gameRef.current.handleTap(clientX, clientY)
   }, [])
 
+  // 获取星座进度
+  const getProgress = useCallback(() => {
+    return gameRef.current?.getConstellationProgress() ?? { collected: 0, total: 10 }
+  }, [])
+
   return {
     canvasRef,
     containerRef,
     startGame,
     stopGame,
     handleTap,
+    getProgress,
   }
 }

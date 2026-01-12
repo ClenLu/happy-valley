@@ -10,22 +10,22 @@ const games = [
   //   theme: 'coral' as const,
   //   character: '🐣', // 辅助角色 - 小鸡学数数
   // },
-  // {
-  //   to: '/games/balloon',
-  //   emoji: '🎈',
-  //   title: '字母气球',
-  //   description: '点击正确的字母气球',
-  //   theme: 'sky' as const,
-  //   character: '🐻', // 辅助角色 - 小熊抓气球
-  // },
   {
-    to: '/games/colors',
-    emoji: '🎨',
-    title: '颜色认知',
-    description: '认识不同的颜色',
-    theme: 'mint' as const,
-    character: '🦋', // 辅助角色 - 蝴蝶找颜色
+    to: '/games/balloon',
+    emoji: '🎈',
+    title: '字母气球',
+    description: '点击正确的字母气球',
+    theme: 'sky' as const,
+    character: '🐻', // 辅助角色 - 小熊抓气球
   },
+  // {
+  //   to: '/games/colors',
+  //   emoji: '🎨',
+  //   title: '颜色认知',
+  //   description: '认识不同的颜色',
+  //   theme: 'mint' as const,
+  //   character: '🦋', // 辅助角色 - 蝴蝶找颜色
+  // },
   // {
   //   to: '/games/shapes',
   //   emoji: '🔷',
