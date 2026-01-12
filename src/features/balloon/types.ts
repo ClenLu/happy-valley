@@ -82,6 +82,15 @@ export interface Particle {
   rotationSpeed: number
 }
 
+// 云朵数据（背景装饰）
+export interface Cloud {
+  x: number
+  y: number
+  size: number      // 相对大小 0.5-1.5
+  speed: number     // 移动速度
+  opacity: number   // 透明度 0.3-0.6
+}
+
 // 游戏事件
 export type GameEvent =
   | { type: 'tap'; x: number; y: number }

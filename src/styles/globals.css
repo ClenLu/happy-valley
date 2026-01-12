@@ -160,6 +160,11 @@
   .animate-bounce-left {
     animation: bounce-left 0.6s ease-in-out infinite;
   }
+
+  /* 慢速旋转 - 星星装饰 */
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
 }
 
 /* 关键帧定义 */
@@ -257,6 +262,15 @@
   }
   50% {
     transform: translateX(-3px);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

@@ -2,7 +2,7 @@ import { Balloon } from './entities/Balloon'
 import { Renderer } from './Renderer'
 import { ParticleSystem } from './systems/ParticleSystem'
 import { getRandomLetter, getRandomLetters } from '../utils/letters'
-import type { GameState, DifficultyConfig } from '../types'
+import type { GameState, DifficultyConfig, Cloud } from '../types'
 
 // 难度配置
 const DIFFICULTY: Record<1 | 2 | 3 | 4, DifficultyConfig> = {
@@ -42,6 +42,7 @@ export class Game {
   }
 
   private balloons: Balloon[] = []
+  private clouds: Cloud[] = []
   private lastTime = 0
   private animationId: number | null = null
   private width = 0
@@ -73,6 +74,28 @@ export class Game {
     this.canvas.style.height = `${height}px`
 
     this.renderer.resize(width, height)
+
+    // 初始化云朵（只在第一次 resize 时）
+    if (this.clouds.length === 0) {
+      this.initClouds()
+    }
+  }
+
+  /**
+   * 初始化背景云朵
+   */
+  private initClouds(): void {
+    // 创建 3-4 朵云，分布在屏幕上半部分
+    const cloudCount = 3 + Math.floor(Math.random() * 2)
+    for (let i = 0; i < cloudCount; i++) {
+      this.clouds.push({
+        x: Math.random() * this.width,
+        y: this.height * (0.1 + Math.random() * 0.25), // 上方 10%-35% 区域
+        size: 0.6 + Math.random() * 0.6,  // 0.6-1.2
+        speed: 8 + Math.random() * 12,    // 8-20 px/s
+        opacity: 0.3 + Math.random() * 0.2, // 0.3-0.5
+      })
+    }
   }
 
   /**
@@ -156,6 +179,9 @@ export class Game {
    * 更新游戏状态
    */
   private update(deltaTime: number): void {
+    // 云朵始终更新（即使游戏未开始）
+    this.updateClouds(deltaTime)
+
     if (this.state.phase !== 'playing' && this.state.phase !== 'celebrating') return
 
     // 更新防误触计时
@@ -189,11 +215,31 @@ export class Game {
   }
 
   /**
+   * 更新云朵位置
+   */
+  private updateClouds(deltaTime: number): void {
+    const dt = deltaTime / 1000
+
+    for (const cloud of this.clouds) {
+      // 云朵从左向右缓慢移动
+      cloud.x += cloud.speed * dt
+
+      // 超出右边界后从左边重新进入
+      if (cloud.x > this.width + 60) {
+        cloud.x = -60
+        // 随机调整 y 位置增加变化
+        cloud.y = this.height * (0.1 + Math.random() * 0.25)
+      }
+    }
+  }
+
+  /**
    * 渲染
    */
   private render(): void {
     this.renderer.clear()
     this.renderer.drawBackground()
+    this.renderer.drawClouds(this.clouds)  // 云朵在背景之上、气球之下
     this.renderer.drawBalloons(this.balloons)
     this.renderer.drawParticles(this.particleSystem.getParticles())
     // 目标字母提示已移至 React 组件
@@ -281,6 +327,13 @@ export class Game {
     const threshold = LEVEL_UP_THRESHOLDS[currentLevel - 1]
     if (this.state.consecutiveCorrect >= threshold) {
       this.state.difficulty = (currentLevel + 1) as 1 | 2 | 3 | 4
+
+      // 触发升级庆祝效果 - 烟花在屏幕中央
+      this.particleSystem.createLevelUpCelebration(
+        this.width / 2,
+        this.height / 2
+      )
+
       this.callbacks.onLevelUp(this.state.difficulty)
     }
   }

@@ -1,9 +1,9 @@
 import { Balloon } from './entities/Balloon'
-import type { Particle } from '../types'
+import type { Particle, Cloud } from '../types'
 
 /**
  * Canvas 渲染器
- * 负责绘制气球、粒子等游戏元素
+ * 负责绘制气球、粒子、云朵等游戏元素
  */
 export class Renderer {
   private ctx: CanvasRenderingContext2D
@@ -257,5 +257,37 @@ export class Renderer {
     ctx.fillStyle = '#4A4A4A'
     ctx.fillText(`找到字母 ${letter}!`, x, y * this.dpr)
     ctx.restore()
+  }
+
+  /**
+   * 绘制云朵
+   */
+  drawClouds(clouds: Cloud[]): void {
+    const ctx = this.ctx
+
+    for (const cloud of clouds) {
+      ctx.save()
+      ctx.globalAlpha = cloud.opacity
+
+      const x = cloud.x * this.dpr
+      const y = cloud.y * this.dpr
+      const baseSize = 30 * cloud.size * this.dpr
+
+      // 使用多个圆形组合成云朵形状
+      ctx.fillStyle = '#FFFFFF'
+      ctx.beginPath()
+
+      // 左边小圆
+      ctx.arc(x - baseSize * 0.6, y, baseSize * 0.5, 0, Math.PI * 2)
+      // 中间大圆
+      ctx.arc(x, y - baseSize * 0.2, baseSize * 0.7, 0, Math.PI * 2)
+      // 右边小圆
+      ctx.arc(x + baseSize * 0.6, y, baseSize * 0.5, 0, Math.PI * 2)
+      // 底部连接
+      ctx.arc(x, y + baseSize * 0.1, baseSize * 0.5, 0, Math.PI * 2)
+
+      ctx.fill()
+      ctx.restore()
+    }
   }
 }
