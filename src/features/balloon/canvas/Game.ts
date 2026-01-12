@@ -2,6 +2,7 @@ import { Balloon } from './entities/Balloon'
 import { Renderer } from './Renderer'
 import { ParticleSystem } from './systems/ParticleSystem'
 import { ConstellationSystem } from './systems/ConstellationSystem'
+import { MusicSystem } from '../audio/MusicSystem'
 import { getRandomLetter, getRandomLetters } from '../utils/letters'
 import type { GameState, GamePhase, Cloud } from '../types'
 
@@ -40,6 +41,7 @@ export class Game {
   private renderer: Renderer
   private particleSystem: ParticleSystem
   private constellationSystem: ConstellationSystem
+  private musicSystem: MusicSystem
   private callbacks: GameCallbacks
 
   private state: GameState = {
@@ -72,6 +74,7 @@ export class Game {
     this.renderer = new Renderer(canvas)
     this.particleSystem = new ParticleSystem()
     this.constellationSystem = new ConstellationSystem()
+    this.musicSystem = new MusicSystem()
     this.callbacks = callbacks
     this.dpr = window.devicePixelRatio || 1
   }
@@ -137,6 +140,9 @@ export class Game {
     // 初始化星座
     this.constellationSystem.initialize(this.targetLetters)
 
+    // 启动音乐系统
+    this.musicSystem.start()
+
     // 开始第一轮
     this.startNewRound()
 
@@ -152,6 +158,7 @@ export class Game {
       cancelAnimationFrame(this.animationId)
       this.animationId = null
     }
+    this.musicSystem.stop()
     this.setPhase('idle')
   }
 
@@ -218,6 +225,9 @@ export class Game {
     // 创建庆祝粒子
     this.particleSystem.createLevelUpCelebration(this.width / 2, this.height / 3)
 
+    // 播放庆祝音效
+    this.musicSystem.playCelebrationSound()
+
     // 延迟后触发结束
     setTimeout(() => {
       this.setPhase('ending')
@@ -279,6 +289,9 @@ export class Game {
         if (starPos) {
           this.particleSystem.createStarAppearEffect(starPos.x, starPos.y)
         }
+
+        // 播放星星收集音效
+        this.musicSystem.playStarCollectedSound()
 
         this.callbacks.onStarCollected(starIndex + 1, this.state.collectedStars)
 
@@ -373,6 +386,9 @@ export class Game {
         return
       }
     }
+
+    // 即使没点中气球，也播放音符（让孩子感觉"我在创造音乐"）
+    this.musicSystem.playClickNote()
   }
 
   /**
@@ -380,6 +396,9 @@ export class Game {
    */
   private handleBalloonTap(balloon: Balloon): void {
     const isCorrect = balloon.data.letter === this.state.targetLetter
+
+    // 播放点击音符（无论对错，都是和谐的）
+    this.musicSystem.playClickNote()
 
     if (isCorrect) {
       // 答对了 - 气球飞向星星
@@ -394,11 +413,17 @@ export class Game {
         // 停止其他气球的闪烁
         this.balloons.forEach(b => b.stopFlash())
 
+        // 播放正确音效
+        this.musicSystem.playCorrectSound()
+
         this.callbacks.onCorrect(balloon.data.letter)
       }
     } else {
       // 答错了 - 气球调皮躲避
       balloon.dodge()
+
+      // 播放错误音效（仍然和谐）
+      this.musicSystem.playWrongSound()
 
       this.callbacks.onWrong(balloon.data.letter, this.state.targetLetter)
 
