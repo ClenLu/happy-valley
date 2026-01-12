@@ -32,11 +32,11 @@ export function TargetHint({ letter, onTap }: TargetHintProps) {
     `}>
       {/* 小熊角色 - 好奇地看着气泡 */}
       <div className="relative flex-shrink-0">
-        <span className="text-3xl animate-wiggle inline-block" style={{ animationDuration: '2s' }}>
+        <span className="text-4xl animate-wiggle inline-block" style={{ animationDuration: '2s' }}>
           🐻
         </span>
         {/* 小熊的思考泡泡 */}
-        <div className="absolute -top-1 -right-1 text-xs animate-bounce-soft">💭</div>
+        <div className="absolute -top-1 -right-1 text-sm animate-bounce-soft">💭</div>
       </div>
 
       {/* 气泡卡片 */}
@@ -44,7 +44,7 @@ export function TargetHint({ letter, onTap }: TargetHintProps) {
         onClick={handleClick}
         onTouchEnd={handleClick}
         className="
-          group relative px-5 py-2.5
+          group relative px-6 py-3
           bg-white/95 backdrop-blur-sm
           rounded-2xl shadow-lg
           border-2 border-kids-sky/40
@@ -56,23 +56,23 @@ export function TargetHint({ letter, onTap }: TargetHintProps) {
       >
         {/* 气泡尾巴 - 指向小熊 */}
         <div className="
-          absolute -left-2 bottom-3
-          w-3 h-3 bg-white/95 rotate-45
+          absolute -left-2 bottom-4
+          w-4 h-4 bg-white/95 rotate-45
           border-l-2 border-b-2 border-kids-sky/40
         " />
 
         {/* 内容 */}
-        <div className="relative flex items-center gap-2">
-          <span className="text-xs text-kids-text-muted">找到</span>
+        <div className="relative flex items-center gap-3">
+          <span className="text-sm text-kids-text-muted">找到</span>
           <span className="
-            text-2xl font-bold text-kids-sky
+            text-5xl font-bold text-kids-sky
             group-hover:animate-bounce-soft
             transition-transform
-            drop-shadow-sm
+            drop-shadow-md
           ">
             {letter}
           </span>
-          <span className="text-sm opacity-50 group-hover:opacity-100 transition-opacity">
+          <span className="text-lg opacity-60 group-hover:opacity-100 transition-opacity">
             🔊
           </span>
         </div>
